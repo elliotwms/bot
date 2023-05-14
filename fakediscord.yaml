@@ -1,0 +1,9 @@
+users:
+  - username: Bot
+    discriminator: "0451"
+    bot: true
+    token: token
+guilds:
+  - name: Test Guild
+    channels:
+      - name: foo
