@@ -14,6 +14,7 @@ type Bot struct {
 	healthCheckAddr *string
 	configReporter  func(showSensitive bool) logrus.Fields
 	intents         discordgo.Intent
+	handlerRemovers []func()
 }
 
 func New(applicationID string, session *discordgo.Session, l *logrus.Logger) *Bot {
@@ -45,7 +46,7 @@ func (bot *Bot) WithConfigReporter(f func(showSensitive bool) logrus.Fields) *Bo
 }
 
 func (bot *Bot) WithHandler(h interface{}) *Bot {
-	bot.session.AddHandler(h)
+	bot.handlerRemovers = append(bot.handlerRemovers, bot.session.AddHandler(h))
 
 	return bot
 }
@@ -99,6 +100,10 @@ func (bot *Bot) Run(ctx context.Context) error {
 			bot.log.WithError(err).Error("Could not close session")
 			return err
 		}
+	}
+
+	for _, remove := range bot.handlerRemovers {
+		remove()
 	}
 
 	return nil
