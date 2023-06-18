@@ -1,10 +1,10 @@
 package bot
 
 import (
+	"context"
 	"errors"
 	"github.com/bwmarrin/discordgo"
 	"github.com/sirupsen/logrus"
-	"os"
 )
 
 type Bot struct {
@@ -61,7 +61,7 @@ func (bot *Bot) WithHandlers(hs []interface{}) *Bot {
 // Run runs the bot, starts the session if not already started, serves the health endpoint if present, and blocks
 // until notified.
 // If the session is already started, Run will not stop the session
-func (bot *Bot) Run(notify <-chan os.Signal) error {
+func (bot *Bot) Run(ctx context.Context) error {
 	if bot.intents != 0 {
 		bot.session.Identify.Intents = bot.intents
 	}
@@ -90,7 +90,7 @@ func (bot *Bot) Run(notify <-chan os.Signal) error {
 		go bot.httpListen()
 	}
 
-	<-notify
+	<-ctx.Done()
 
 	bot.log.Info("Stopping bot...")
 	if shouldCloseSession {

@@ -1,6 +1,7 @@
 package bot
 
 import (
+	"context"
 	"os"
 	"testing"
 	"time"
@@ -16,7 +17,8 @@ type RunStage struct {
 
 	session   *discordgo.Session
 	bot       *Bot
-	sig       chan os.Signal
+	ctx       context.Context
+	cancel    context.CancelFunc
 	runResult error
 	log       *logrus.Logger
 	ready     *discordgo.Ready
@@ -27,10 +29,10 @@ func NewRunStage(t *testing.T) (*RunStage, *RunStage, *RunStage) {
 	s := &RunStage{
 		t:       t,
 		require: require.New(t),
-
-		sig: make(chan os.Signal),
-		log: logrus.New(),
+		log:     logrus.New(),
 	}
+
+	s.ctx, s.cancel = context.WithCancel(context.Background())
 
 	s.log.SetOutput(os.Stdout)
 
@@ -74,7 +76,7 @@ func (s *RunStage) the_bot_watches_for_ready_events() *RunStage {
 
 func (s *RunStage) the_bot_is_run() *RunStage {
 	go func() {
-		s.runResult = s.bot.Run(s.sig)
+		s.runResult = s.bot.Run(s.ctx)
 	}()
 
 	return s
@@ -97,7 +99,7 @@ func (s *RunStage) the_ready_event_is_not_received() *RunStage {
 }
 
 func (s *RunStage) the_bot_is_stopped() *RunStage {
-	close(s.sig)
+	s.cancel()
 
 	return s
 }
