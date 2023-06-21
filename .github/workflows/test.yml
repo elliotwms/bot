@@ -4,6 +4,4 @@ on:
     branches: [ main ]
 jobs:
   test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: elliotwms/actions/.github/workflows/go-test.yml@v3
+    uses: elliotwms/actions/.github/workflows/go-test.yml@v3
