@@ -5,3 +5,5 @@ on:
 jobs:
   test:
     uses: elliotwms/actions/.github/workflows/go-test.yml@main
+    with:
+      docker-compose: true
