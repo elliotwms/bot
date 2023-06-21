@@ -4,4 +4,4 @@ on:
     branches: [ main ]
 jobs:
   test:
-    uses: elliotwms/actions/.github/workflows/go-test.yml@v3
+    uses: elliotwms/actions/.github/workflows/go-test.yml@main
