@@ -4,6 +4,7 @@ on:
     branches: [ main ]
 jobs:
   test:
+    name: Test
     uses: elliotwms/actions/.github/workflows/go-test.yml@main
     with:
       docker-compose: true
