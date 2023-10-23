@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/bwmarrin/discordgo v0.27.1
-	github.com/elliotwms/fakediscord v0.12.5
+	github.com/elliotwms/fakediscord v0.12.7
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.8.4
 )
