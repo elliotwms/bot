@@ -3,24 +3,24 @@ package bot
 import (
 	"context"
 	"errors"
+	"log/slog"
+
 	"github.com/bwmarrin/discordgo"
-	"github.com/sirupsen/logrus"
 )
 
 type Bot struct {
 	session         *discordgo.Session
-	log             *logrus.Logger
+	log             *slog.Logger
 	applicationID   string
 	healthCheckAddr *string
-	configReporter  func(showSensitive bool) logrus.Fields
 	intents         discordgo.Intent
 	handlerRemovers []func()
 }
 
-func New(applicationID string, session *discordgo.Session, l *logrus.Logger) *Bot {
+func New(applicationID string, session *discordgo.Session) *Bot {
 	bot := &Bot{
 		session:       session,
-		log:           l,
+		log:           slog.New(dh),
 		applicationID: applicationID,
 	}
 
@@ -33,14 +33,14 @@ func (bot *Bot) WithSession(s *discordgo.Session) *Bot {
 	return bot
 }
 
-func (bot *Bot) WithIntents(i discordgo.Intent) *Bot {
-	bot.intents = i
+func (bot *Bot) WithLogger(l *slog.Logger) *Bot {
+	bot.log = l
 
 	return bot
 }
 
-func (bot *Bot) WithConfigReporter(f func(showSensitive bool) logrus.Fields) *Bot {
-	bot.configReporter = f
+func (bot *Bot) WithIntents(i discordgo.Intent) *Bot {
+	bot.intents = i
 
 	return bot
 }
@@ -67,18 +67,12 @@ func (bot *Bot) Run(ctx context.Context) error {
 		bot.session.Identify.Intents = bot.intents
 	}
 
-	fields := logrus.Fields{}
-	if bot.configReporter != nil {
-		fields = bot.configReporter(bot.log.IsLevelEnabled(logrus.TraceLevel))
-	}
-	bot.log.WithFields(fields).Info("Starting...")
+	bot.log.Info("Starting...")
 
 	shouldCloseSession := true
 	if err := bot.session.Open(); err != nil {
 		if !errors.Is(err, discordgo.ErrWSAlreadyOpen) {
-			bot.log.
-				WithError(err).
-				Error("Could not open session")
+			bot.log.Error("Could not open session", withErr(err))
 
 			return err
 		}
@@ -97,7 +91,7 @@ func (bot *Bot) Run(ctx context.Context) error {
 	if shouldCloseSession {
 		bot.log.Debug("Closing session")
 		if err := bot.session.Close(); err != nil {
-			bot.log.WithError(err).Error("Could not close session")
+			bot.log.Error("Could not close session", withErr(err))
 			return err
 		}
 	}

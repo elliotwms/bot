@@ -72,18 +72,3 @@ func TestBot_WithIntents(t *testing.T) {
 		the_session_is_connected().and().
 		the_session_has_custom_intents()
 }
-
-func TestBot_WithConfigReporter(t *testing.T) {
-	given, when, then := NewRunStage(t)
-
-	given.
-		a_new_bot().
-		with_config_reporter_with_custom_value("foo", "bar")
-
-	when.
-		the_bot_is_run()
-
-	then.
-		the_session_is_connected().and().
-		the_starting_message_is_logged_with_field("foo", "bar")
-}

@@ -20,13 +20,13 @@ func (bot *Bot) httpListen() {
 		}
 
 		if _, err := w.Write([]byte(latency.String())); err != nil {
-			bot.log.WithError(err).Error("Could not write health check response")
+			bot.log.Error("Could not write health check response", withErr(err))
 		}
 	})
 
 	err := http.ListenAndServe(*bot.healthCheckAddr, nil)
 	if err != nil {
-		bot.log.WithError(err).Error("Could not serve health check endpoint")
+		bot.log.Error("Could not serve health check endpoint", withErr(err))
 		return
 	}
 }

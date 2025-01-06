@@ -2,13 +2,12 @@ package bot
 
 import (
 	"context"
-	"github.com/sirupsen/logrus/hooks/test"
+	"log/slog"
 	"os"
 	"testing"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
 )
 
@@ -21,24 +20,17 @@ type RunStage struct {
 	ctx       context.Context
 	cancel    context.CancelFunc
 	runResult error
-	log       *logrus.Logger
 	ready     *discordgo.Ready
 	connected bool
-	loghook   *test.Hook
 }
 
 func NewRunStage(t *testing.T) (*RunStage, *RunStage, *RunStage) {
 	s := &RunStage{
 		t:       t,
 		require: require.New(t),
-		log:     logrus.New(),
 	}
 
-	s.loghook = test.NewLocal(s.log)
-
 	s.ctx, s.cancel = context.WithCancel(context.Background())
-
-	s.log.SetOutput(os.Stdout)
 
 	session, err := discordgo.New("Bot token")
 	s.require.NoError(err)
@@ -65,7 +57,7 @@ func (s *RunStage) and() *RunStage {
 }
 
 func (s *RunStage) a_new_bot() *RunStage {
-	s.bot = New("id", s.session, s.log)
+	s.bot = New("id", s.session).WithLogger(slog.Default())
 
 	return s
 }
@@ -147,25 +139,4 @@ func (s *RunStage) the_session_is_disconnected() *RunStage {
 
 func (s *RunStage) the_session_has_custom_intents() {
 	s.require.Equal(discordgo.IntentGuilds, s.session.Identify.Intents)
-}
-
-func (s *RunStage) with_config_reporter_with_custom_value(k, v string) {
-	s.bot = s.bot.WithConfigReporter(func(showSensitive bool) logrus.Fields {
-		return logrus.Fields{
-			k: v,
-		}
-	})
-}
-
-func (s *RunStage) the_starting_message_is_logged_with_field(k, v string) {
-	found := false
-	for _, entry := range s.loghook.AllEntries() {
-		if entry.Message == "Starting..." {
-			if entry.Data[k] == v {
-				found = true
-			}
-		}
-	}
-
-	s.require.True(found)
 }
