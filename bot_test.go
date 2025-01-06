@@ -72,3 +72,23 @@ func TestBot_WithIntents(t *testing.T) {
 		the_session_is_connected().and().
 		the_session_has_custom_intents()
 }
+
+func TestBot_WithHealthCheck(t *testing.T) {
+	given, when, then := NewRunStage(t)
+
+	t.Cleanup(func() {
+		then.
+			the_bot_is_stopped().and().
+			the_session_is_disconnected()
+	})
+
+	given.
+		a_new_bot().
+		with_health_check()
+
+	when.
+		the_bot_is_run()
+
+	then.
+		the_health_check_should_succeed()
+}

@@ -2,12 +2,15 @@ package bot
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
+	"net/http"
 	"os"
 	"testing"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/phayes/freeport"
 	"github.com/stretchr/testify/require"
 )
 
@@ -15,13 +18,14 @@ type RunStage struct {
 	t       *testing.T
 	require *require.Assertions
 
-	session   *discordgo.Session
-	bot       *Bot
-	ctx       context.Context
-	cancel    context.CancelFunc
-	runResult error
-	ready     *discordgo.Ready
-	connected bool
+	session    *discordgo.Session
+	bot        *Bot
+	ctx        context.Context
+	cancel     context.CancelFunc
+	runResult  error
+	ready      *discordgo.Ready
+	connected  bool
+	healthAddr string
 }
 
 func NewRunStage(t *testing.T) (*RunStage, *RunStage, *RunStage) {
@@ -63,7 +67,16 @@ func (s *RunStage) a_new_bot() *RunStage {
 }
 
 func (s *RunStage) with_custom_intents() {
-	s.bot = s.bot.WithIntents(discordgo.IntentGuilds)
+	s.bot.WithIntents(discordgo.IntentGuilds)
+}
+
+func (s *RunStage) with_health_check() {
+	port, err := freeport.GetFreePort()
+	s.require.NoError(err)
+
+	s.healthAddr = fmt.Sprintf("127.0.0.1:%d", port)
+
+	s.bot.WithHealthCheck(s.healthAddr)
 }
 
 func (s *RunStage) the_bot_watches_for_ready_events() *RunStage {
@@ -139,4 +152,21 @@ func (s *RunStage) the_session_is_disconnected() *RunStage {
 
 func (s *RunStage) the_session_has_custom_intents() {
 	s.require.Equal(discordgo.IntentGuilds, s.session.Identify.Intents)
+}
+
+func (s *RunStage) the_health_check_should_succeed() {
+	s.require.Eventually(func() bool {
+		res, err := http.Get("http://" + s.healthAddr + "/v1/health")
+		if err != nil {
+			s.t.Log(err)
+			return false
+		}
+
+		if res.StatusCode != 200 {
+			s.t.Logf("Unexpected status code: %d", res.StatusCode)
+			return false
+		}
+
+		return true
+	}, 5*time.Second, 100*time.Millisecond)
 }
