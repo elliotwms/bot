@@ -6,6 +6,8 @@ import (
 	"log/slog"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/elliotwms/bot/interactions"
+	"github.com/elliotwms/bot/log"
 )
 
 type Bot struct {
@@ -15,20 +17,20 @@ type Bot struct {
 	healthCheckAddr *string
 	intents         discordgo.Intent
 	handlerRemovers []func()
+	router          *interactions.Router
 }
 
-func New(applicationID string, session *discordgo.Session) *Bot {
+func New(applicationID string, session *discordgo.Session, options ...func(*Bot)) *Bot {
 	bot := &Bot{
 		session:       session,
-		log:           slog.New(dh),
+		log:           slog.New(log.DiscardHandler),
 		applicationID: applicationID,
+		router:        interactions.NewRouter(),
 	}
 
-	return bot
-}
-
-func (bot *Bot) WithSession(s *discordgo.Session) *Bot {
-	bot.session = s
+	for _, o := range options {
+		o(bot)
+	}
 
 	return bot
 }
@@ -59,20 +61,30 @@ func (bot *Bot) WithHandlers(hs []interface{}) *Bot {
 	return bot
 }
 
+func (bot *Bot) WithApplicationCommand(name string, h interactions.ApplicationCommandHandler) *Bot {
+	bot.router.RegisterCommand(name, h)
+
+	return bot
+}
+
 // Run runs the bot, starts the session if not already started, serves the health endpoint if present, and blocks
-// until notified.
+// until context is completed.
 // If the session is already started, Run will not stop the session
 func (bot *Bot) Run(ctx context.Context) error {
 	if bot.intents != 0 {
 		bot.session.Identify.Intents = bot.intents
 	}
 
+	// add the InteractionCreate handler
+	// todo make conditional depending on if commands are registered
+	bot.WithHandler(bot.router.Handle)
+
 	bot.log.Info("Starting...")
 
 	shouldCloseSession := true
 	if err := bot.session.Open(); err != nil {
 		if !errors.Is(err, discordgo.ErrWSAlreadyOpen) {
-			bot.log.Error("Could not open session", withErr(err))
+			bot.log.Error("Could not open session", log.WithErr(err))
 
 			return err
 		}
@@ -91,7 +103,7 @@ func (bot *Bot) Run(ctx context.Context) error {
 	if shouldCloseSession {
 		bot.log.Debug("Closing session")
 		if err := bot.session.Close(); err != nil {
-			bot.log.Error("Could not close session", withErr(err))
+			bot.log.Error("Could not close session", log.WithErr(err))
 			return err
 		}
 	}
