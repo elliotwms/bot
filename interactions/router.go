@@ -9,15 +9,22 @@ import (
 
 type ApplicationCommandHandler func(s *discordgo.Session, i *discordgo.InteractionCreate, data discordgo.ApplicationCommandInteractionData) (err error)
 
+type key struct {
+	name        string
+	commandType discordgo.ApplicationCommandType
+}
+
 type Router struct {
-	applicationCommandHandlers map[string]ApplicationCommandHandler
+	applicationCommandHandlers map[key]ApplicationCommandHandler
 	log                        *slog.Logger
 	deferredResponseEnabled    bool
 }
 
+type RouterOption func(*Router)
+
 func NewRouter(options ...func(*Router)) *Router {
 	r := &Router{
-		applicationCommandHandlers: make(map[string]ApplicationCommandHandler),
+		applicationCommandHandlers: make(map[key]ApplicationCommandHandler),
 		log:                        slog.New(log.DiscardHandler),
 	}
 
@@ -28,26 +35,21 @@ func NewRouter(options ...func(*Router)) *Router {
 	return r
 }
 
-func WithLogger(l *slog.Logger) func(*Router) {
+func WithLogger(l *slog.Logger) RouterOption {
 	return func(r *Router) {
 		r.log = l
 	}
 }
 
-func WithDeferredResponse(enabled bool) func(*Router) {
+// WithDeferredResponse adds an initial deferred response to command invocations
+func WithDeferredResponse(enabled bool) RouterOption {
 	return func(r *Router) {
 		r.deferredResponseEnabled = enabled
 	}
 }
 
-func WithCommandHandler(name string, handler ApplicationCommandHandler) func(*Router) {
-	return func(r *Router) {
-		r.RegisterCommand(name, handler)
-	}
-}
-
-func (r *Router) RegisterCommand(name string, handler ApplicationCommandHandler) {
-	r.applicationCommandHandlers[name] = handler
+func (r *Router) RegisterCommand(name string, commandType discordgo.ApplicationCommandType, handler ApplicationCommandHandler) {
+	r.applicationCommandHandlers[key{name: name, commandType: commandType}] = handler
 }
 
 // Handle implements the discordgo.InteractionCreate handler, dispatching events to the relevant handlers within the
@@ -63,6 +65,7 @@ func (r *Router) Handle(s *discordgo.Session, e *discordgo.InteractionCreate) {
 }
 
 func (r *Router) handleApplicationCommand(s *discordgo.Session, e *discordgo.InteractionCreate) {
+	// if deferred response is enabled then call discord with the initial response before routing the command
 	if r.deferredResponseEnabled {
 		err := s.InteractionRespond(e.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
@@ -78,7 +81,7 @@ func (r *Router) handleApplicationCommand(s *discordgo.Session, e *discordgo.Int
 
 	command := e.ApplicationCommandData()
 
-	h, ok := r.applicationCommandHandlers[command.Name]
+	h, ok := r.applicationCommandHandlers[key{command.Name, command.CommandType}]
 	if !ok {
 		r.log.Error("Handler not found for application command", "name", command.Name)
 		return

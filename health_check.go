@@ -7,12 +7,6 @@ import (
 	"github.com/elliotwms/bot/log"
 )
 
-func (bot *Bot) WithHealthCheck(addr string) *Bot {
-	bot.healthCheckAddr = &addr
-
-	return bot
-}
-
 func (bot *Bot) httpListen() {
 	http.HandleFunc("/v1/health", func(w http.ResponseWriter, req *http.Request) {
 		bot.log.Debug("Health check")

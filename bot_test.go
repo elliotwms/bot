@@ -1,22 +1,12 @@
 package bot
 
-import (
-	"testing"
-
-	"github.com/elliotwms/fakediscord/pkg/fakediscord"
-)
-
-func TestMain(m *testing.M) {
-	fakediscord.Configure("http://localhost:8080/")
-	m.Run()
-}
+import "testing"
 
 func TestNew(t *testing.T) {
-	given, when, then := NewRunStage(t)
+	given, when, then := NewBotStage(t)
 
 	given.
-		a_new_bot().and().
-		the_bot_watches_for_ready_events()
+		a_ready_event_is_expected()
 
 	when.
 		the_bot_is_run()
@@ -34,13 +24,12 @@ func TestNew(t *testing.T) {
 }
 
 func TestNew_ShouldNotCloseEstablishedSession(t *testing.T) {
-	given, when, then := NewRunStage(t)
+	given, when, then := NewBotStage(t)
 
 	given.
-		a_new_bot().and().
 		an_established_session().and().
 		the_session_is_connected().and().
-		the_bot_watches_for_ready_events()
+		a_ready_event_is_expected()
 
 	when.
 		the_bot_is_run()
@@ -53,17 +42,12 @@ func TestNew_ShouldNotCloseEstablishedSession(t *testing.T) {
 }
 
 func TestBot_WithIntents(t *testing.T) {
-	given, when, then := NewRunStage(t)
+	given, when, then := NewBotStage(t)
 
-	t.Cleanup(func() {
-		then.
-			the_bot_is_stopped().and().
-			the_session_is_disconnected()
-	})
+	t.Cleanup(then.cleanup)
 
 	given.
-		a_new_bot().
-		with_custom_intents()
+		the_bot_has_custom_intents()
 
 	when.
 		the_bot_is_run()
@@ -74,21 +58,71 @@ func TestBot_WithIntents(t *testing.T) {
 }
 
 func TestBot_WithHealthCheck(t *testing.T) {
-	given, when, then := NewRunStage(t)
+	given, when, then := NewBotStage(t)
 
-	t.Cleanup(func() {
-		then.
-			the_bot_is_stopped().and().
-			the_session_is_disconnected()
-	})
+	t.Cleanup(then.cleanup)
 
 	given.
-		a_new_bot().
-		with_health_check()
+		the_bot_has_a_health_check_endpoint()
 
 	when.
 		the_bot_is_run()
 
 	then.
 		the_health_check_should_succeed()
+}
+
+func TestBot_WithCommand(t *testing.T) {
+	given, when, then := NewBotStage(t)
+
+	t.Cleanup(then.cleanup)
+
+	given.
+		an_application_command_already_exists_named("foo").and().
+		the_bot_has_application_command_named("bar").and().
+		migration_is_enabled()
+
+	when.
+		the_bot_is_run()
+
+	then.
+		a_command_should_not_exist_named("foo").and().
+		a_command_should_exist_named("bar")
+}
+
+func TestBot_WithCommand_MigrationDisabled(t *testing.T) {
+	given, when, then := NewBotStage(t)
+
+	t.Cleanup(then.cleanup)
+
+	given.
+		an_application_command_already_exists_named("foo").and().
+		the_bot_has_application_command_named("bar")
+
+	when.
+		the_bot_is_run()
+
+	then.
+		a_command_should_exist_named("foo").and().
+		a_command_should_not_exist_named("bar")
+}
+
+func TestBot_WithCommand_WithDeferredResponse(t *testing.T) {
+	given, when, then := NewBotStage(t)
+
+	t.Cleanup(then.cleanup)
+
+	given.
+		the_bot_has_deferred_response_enabled().and().
+		the_bot_has_application_command_named("foo").and().
+		migration_is_enabled()
+
+	when.
+		the_bot_is_run().and().
+		the_session_is_connected().
+		the_command_is_invoked("foo")
+
+	then.
+		the_command_handler_should_have_been_called().and().
+		the_interaction_should_have_a_deferred_response()
 }

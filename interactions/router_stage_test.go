@@ -31,7 +31,7 @@ func (s *RouterStage) and() *RouterStage {
 }
 
 func (s *RouterStage) a_handler_is_registered_for_command(name string) {
-	s.router.RegisterCommand(name, func(_ *discordgo.Session, i *discordgo.InteractionCreate, data discordgo.ApplicationCommandInteractionData) (err error) {
+	s.router.RegisterCommand(name, discordgo.ChatApplicationCommand, func(_ *discordgo.Session, i *discordgo.InteractionCreate, data discordgo.ApplicationCommandInteractionData) (err error) {
 		s.handlerCalled++
 
 		return nil
@@ -43,7 +43,8 @@ func (s *RouterStage) the_router_is_called_for_command(name string) {
 		Interaction: &discordgo.Interaction{
 			Type: discordgo.InteractionApplicationCommand,
 			Data: discordgo.ApplicationCommandInteractionData{
-				Name: name,
+				Name:        name,
+				CommandType: discordgo.ChatApplicationCommand,
 			},
 		},
 	})

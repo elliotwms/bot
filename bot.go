@@ -18,68 +18,32 @@ type Bot struct {
 	intents         discordgo.Intent
 	handlerRemovers []func()
 	router          *interactions.Router
-}
-
-func New(applicationID string, session *discordgo.Session, options ...func(*Bot)) *Bot {
-	bot := &Bot{
-		session:       session,
-		log:           slog.New(log.DiscardHandler),
-		applicationID: applicationID,
-		router:        interactions.NewRouter(),
-	}
-
-	for _, o := range options {
-		o(bot)
-	}
-
-	return bot
-}
-
-func (bot *Bot) WithLogger(l *slog.Logger) *Bot {
-	bot.log = l
-
-	return bot
-}
-
-func (bot *Bot) WithIntents(i discordgo.Intent) *Bot {
-	bot.intents = i
-
-	return bot
-}
-
-func (bot *Bot) WithHandler(h interface{}) *Bot {
-	bot.handlerRemovers = append(bot.handlerRemovers, bot.session.AddHandler(h))
-
-	return bot
-}
-
-func (bot *Bot) WithHandlers(hs []interface{}) *Bot {
-	for _, h := range hs {
-		bot.WithHandler(h)
-	}
-
-	return bot
-}
-
-func (bot *Bot) WithApplicationCommand(name string, h interactions.ApplicationCommandHandler) *Bot {
-	bot.router.RegisterCommand(name, h)
-
-	return bot
+	migrator        *interactions.Migrator
 }
 
 // Run runs the bot, starts the session if not already started, serves the health endpoint if present, and blocks
-// until context is completed.
+// until context is done.
 // If the session is already started, Run will not stop the session
 func (bot *Bot) Run(ctx context.Context) error {
 	if bot.intents != 0 {
 		bot.session.Identify.Intents = bot.intents
 	}
 
-	// add the InteractionCreate handler
-	// todo make conditional depending on if commands are registered
-	bot.WithHandler(bot.router.Handle)
+	// add the router handler for InteractionCreate events
+	if bot.router != nil {
+		bot.handlerRemovers = append(bot.handlerRemovers, bot.session.AddHandler(bot.router.Handle))
+	}
 
-	bot.log.Info("Starting...")
+	if bot.migrator != nil {
+		bot.log.Info("Migrating application commands")
+		err := bot.migrator.Migrate(ctx)
+		if err != nil {
+			bot.log.Error("Failed to migrate application commands: " + err.Error())
+			return err
+		}
+	}
+
+	bot.log.Info("Starting")
 
 	shouldCloseSession := true
 	if err := bot.session.Open(); err != nil {
@@ -99,7 +63,7 @@ func (bot *Bot) Run(ctx context.Context) error {
 
 	<-ctx.Done()
 
-	bot.log.Info("Stopping bot...")
+	bot.log.Info("Shutting down")
 	if shouldCloseSession {
 		bot.log.Debug("Closing session")
 		if err := bot.session.Close(); err != nil {
