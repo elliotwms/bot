@@ -6,6 +6,8 @@ import (
 	"log/slog"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/elliotwms/bot/interactions"
+	"github.com/elliotwms/bot/log"
 )
 
 type Bot struct {
@@ -15,64 +17,38 @@ type Bot struct {
 	healthCheckAddr *string
 	intents         discordgo.Intent
 	handlerRemovers []func()
-}
-
-func New(applicationID string, session *discordgo.Session) *Bot {
-	bot := &Bot{
-		session:       session,
-		log:           slog.New(dh),
-		applicationID: applicationID,
-	}
-
-	return bot
-}
-
-func (bot *Bot) WithSession(s *discordgo.Session) *Bot {
-	bot.session = s
-
-	return bot
-}
-
-func (bot *Bot) WithLogger(l *slog.Logger) *Bot {
-	bot.log = l
-
-	return bot
-}
-
-func (bot *Bot) WithIntents(i discordgo.Intent) *Bot {
-	bot.intents = i
-
-	return bot
-}
-
-func (bot *Bot) WithHandler(h interface{}) *Bot {
-	bot.handlerRemovers = append(bot.handlerRemovers, bot.session.AddHandler(h))
-
-	return bot
-}
-
-func (bot *Bot) WithHandlers(hs []interface{}) *Bot {
-	for _, h := range hs {
-		bot.WithHandler(h)
-	}
-
-	return bot
+	router          *interactions.Router
+	migrator        *interactions.Migrator
 }
 
 // Run runs the bot, starts the session if not already started, serves the health endpoint if present, and blocks
-// until notified.
+// until context is done.
 // If the session is already started, Run will not stop the session
 func (bot *Bot) Run(ctx context.Context) error {
 	if bot.intents != 0 {
 		bot.session.Identify.Intents = bot.intents
 	}
 
-	bot.log.Info("Starting...")
+	// add the router handler for InteractionCreate events
+	if bot.router != nil {
+		bot.handlerRemovers = append(bot.handlerRemovers, bot.session.AddHandler(bot.router.Handle))
+	}
+
+	if bot.migrator != nil {
+		bot.log.Info("Migrating application commands")
+		err := bot.migrator.Migrate(ctx)
+		if err != nil {
+			bot.log.Error("Failed to migrate application commands: " + err.Error())
+			return err
+		}
+	}
+
+	bot.log.Info("Starting")
 
 	shouldCloseSession := true
 	if err := bot.session.Open(); err != nil {
 		if !errors.Is(err, discordgo.ErrWSAlreadyOpen) {
-			bot.log.Error("Could not open session", withErr(err))
+			bot.log.Error("Could not open session", log.WithErr(err))
 
 			return err
 		}
@@ -87,11 +63,11 @@ func (bot *Bot) Run(ctx context.Context) error {
 
 	<-ctx.Done()
 
-	bot.log.Info("Stopping bot...")
+	bot.log.Info("Shutting down")
 	if shouldCloseSession {
 		bot.log.Debug("Closing session")
 		if err := bot.session.Close(); err != nil {
-			bot.log.Error("Could not close session", withErr(err))
+			bot.log.Error("Could not close session", log.WithErr(err))
 			return err
 		}
 	}

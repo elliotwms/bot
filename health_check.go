@@ -3,13 +3,9 @@ package bot
 import (
 	"net/http"
 	"time"
+
+	"github.com/elliotwms/bot/log"
 )
-
-func (bot *Bot) WithHealthCheck(addr string) *Bot {
-	bot.healthCheckAddr = &addr
-
-	return bot
-}
 
 func (bot *Bot) httpListen() {
 	http.HandleFunc("/v1/health", func(w http.ResponseWriter, req *http.Request) {
@@ -21,7 +17,7 @@ func (bot *Bot) httpListen() {
 		}
 
 		if _, err := w.Write([]byte(latency.String())); err != nil {
-			bot.log.Error("Could not write health check response", withErr(err))
+			bot.log.Error("Could not write health check response", log.WithErr(err))
 		}
 	})
 
@@ -29,7 +25,7 @@ func (bot *Bot) httpListen() {
 
 	err := http.ListenAndServe(*bot.healthCheckAddr, nil)
 	if err != nil {
-		bot.log.Error("Could not serve health check endpoint", withErr(err))
+		bot.log.Error("Could not serve health check endpoint", log.WithErr(err))
 		return
 	}
 }
