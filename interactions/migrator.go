@@ -17,8 +17,6 @@ type Migrator struct {
 	appID    string
 	commands []*discordgo.ApplicationCommand
 	guildID  string
-
-	shouldDeleteStaleCommands bool
 }
 
 type MigratorOption func(*Migrator)

@@ -96,15 +96,15 @@ func TestBot_WithCommand_MigrationDisabled(t *testing.T) {
 	t.Cleanup(then.cleanup)
 
 	given.
-		an_application_command_already_exists_named("foo").and().
-		the_bot_has_application_command_named("bar")
+		an_application_command_already_exists_named("baz").and().
+		the_bot_has_application_command_named("bux")
 
 	when.
 		the_bot_is_run()
 
 	then.
-		a_command_should_exist_named("foo").and().
-		a_command_should_not_exist_named("bar")
+		a_command_should_exist_named("baz").and().
+		a_command_should_not_exist_named("bux")
 }
 
 func TestBot_WithCommand_WithDeferredResponse(t *testing.T) {

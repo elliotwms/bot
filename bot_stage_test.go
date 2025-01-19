@@ -23,7 +23,6 @@ type RunStage struct {
 	session *discordgo.Session
 	builder *Builder
 	bot     *Bot
-	router  *interactions.Router
 
 	ctx            context.Context
 	cancel         context.CancelFunc
@@ -31,7 +30,7 @@ type RunStage struct {
 	ready          *discordgo.Ready
 	connected      bool
 	healthAddr     string
-	applicationID  string // todo applicationID is unreliable as it doesn't correllate with the session ID
+	applicationID  string
 	createdCommand *discordgo.ApplicationCommand
 	guild          *discordgo.Guild
 	channel        *discordgo.Channel
@@ -77,17 +76,12 @@ func NewBotStage(t *testing.T) (*RunStage, *RunStage, *RunStage) {
 
 	// create a default test channel
 	s.channel, err = s.session.GuildChannelCreate(s.guild.ID, "test", discordgo.ChannelTypeGuildText)
+	s.require.NoError(err)
 
 	return s, s, s
 }
 
 func (s *RunStage) and() *RunStage {
-	return s
-}
-
-func (s *RunStage) a_new_bot() *RunStage {
-	s.builder = New(s.applicationID, s.session)
-
 	return s
 }
 
@@ -213,14 +207,6 @@ func (s *RunStage) an_application_command_already_exists_named(name string) *Run
 		Name: name,
 		Type: discordgo.ChatApplicationCommand,
 	})
-	s.require.NoError(err)
-
-	return s
-}
-
-func (s *RunStage) a_guild_named(name string) *RunStage {
-	var err error
-	s.guild, err = s.session.GuildCreate(name)
 	s.require.NoError(err)
 
 	return s

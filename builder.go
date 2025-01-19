@@ -18,7 +18,6 @@ type Builder struct {
 	applicationID    string
 	healthCheckAddr  *string
 	intents          discordgo.Intent
-	handlerRemovers  []func()
 	router           *interactions.Router
 	migrator         *interactions.Migrator
 	guildID          string
