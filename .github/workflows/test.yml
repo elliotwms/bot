@@ -37,6 +37,10 @@ jobs:
         env:
           FAKEDISCORD: 1
         run: go test -v ./...
+      - name: Test
+        env:
+          FAKEDISCORD: 1
+        run: go test -v lambda/...
       - name: Docker logs
         if: failure()
         run: docker compose logs
