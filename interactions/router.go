@@ -1,13 +1,14 @@
 package interactions
 
 import (
+	"context"
 	"log/slog"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/elliotwms/bot/log"
 )
 
-type ApplicationCommandHandler func(s *discordgo.Session, i *discordgo.InteractionCreate, data discordgo.ApplicationCommandInteractionData) (err error)
+type ApplicationCommandHandler func(ctx context.Context, s *discordgo.Session, i *discordgo.InteractionCreate, data discordgo.ApplicationCommandInteractionData) (err error)
 
 type key struct {
 	name        string
@@ -55,16 +56,27 @@ func (r *Router) RegisterCommand(name string, commandType discordgo.ApplicationC
 // Handle implements the discordgo.InteractionCreate handler, dispatching events to the relevant handlers within the
 // router. Currently only application commands are supported
 func (r *Router) Handle(s *discordgo.Session, e *discordgo.InteractionCreate) {
-	// todo handle other interaction types
-	switch e.Type {
+	_ = r.HandleWithContext(context.Background(), s, e)
+}
+
+// HandleWithContext propagates the context and provides a request/response pattern for interaction handling (e.g. via Lambda)
+func (r *Router) HandleWithContext(ctx context.Context, is *discordgo.Session, i *discordgo.InteractionCreate) *discordgo.InteractionResponse {
+	// todo support other interaction types i.e. message component, autocomplete, modal submit
+	switch i.Type {
+	case discordgo.InteractionPing:
+		return &discordgo.InteractionResponse{Type: discordgo.InteractionResponsePong}
 	case discordgo.InteractionApplicationCommand:
-		r.handleApplicationCommand(s, e)
+		r.handleApplicationCommand(ctx, is, i)
+		return nil
 	default:
-		r.log.Error("Unexpected interaction type", "type", e.Type.String())
+		return &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{Content: "Unexpected interaction"},
+		}
 	}
 }
 
-func (r *Router) handleApplicationCommand(s *discordgo.Session, e *discordgo.InteractionCreate) {
+func (r *Router) handleApplicationCommand(ctx context.Context, s *discordgo.Session, e *discordgo.InteractionCreate) {
 	// if deferred response is enabled then call discord with the initial response before routing the command
 	if r.deferredResponseEnabled {
 		err := s.InteractionRespond(e.Interaction, &discordgo.InteractionResponse{
@@ -72,7 +84,7 @@ func (r *Router) handleApplicationCommand(s *discordgo.Session, e *discordgo.Int
 			Data: &discordgo.InteractionResponseData{
 				Flags: discordgo.MessageFlagsEphemeral,
 			},
-		})
+		}, discordgo.WithContext(ctx))
 		if err != nil {
 			r.log.Error("Failed to respond to InteractionCreate", "error", err)
 			return
@@ -87,7 +99,8 @@ func (r *Router) handleApplicationCommand(s *discordgo.Session, e *discordgo.Int
 		return
 	}
 
-	if err := h(s, e, command); err != nil {
+	if err := h(ctx, s, e, command); err != nil {
 		r.log.Error("Failed to handle interaction", "error", err)
 	}
+	return
 }
