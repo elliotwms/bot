@@ -23,7 +23,6 @@ const (
 
 type Endpoint struct {
 	s         *discordgo.Session
-	handlers  map[string]CommandHandler
 	publicKey ed25519.PublicKey
 	router    *interactions.Router
 	log       *slog.Logger
