@@ -32,10 +32,12 @@ type Endpoint struct {
 type CommandHandler func(ctx context.Context, s *discordgo.Session, i *discordgo.InteractionCreate, data discordgo.ApplicationCommandInteractionData) error
 
 func New(publicKey ed25519.PublicKey, options ...Option) *Endpoint {
+	logger := slog.Default()
+
 	e := &Endpoint{
 		publicKey: publicKey,
-		handlers:  map[string]CommandHandler{},
-		log:       slog.Default(),
+		log:       logger,
+		router:    interactions.NewRouter(interactions.WithLogger(logger)),
 	}
 
 	for _, o := range options {
@@ -81,10 +83,6 @@ func (r *Endpoint) WithMessageApplicationCommand(name string, handler interactio
 
 // WithApplicationCommand registers a new application command with the underlying Router.
 func (r *Endpoint) WithApplicationCommand(name string, commandType discordgo.ApplicationCommandType, handler interactions.ApplicationCommandHandler) *Endpoint {
-	if r.router == nil {
-		r.router = interactions.NewRouter(interactions.WithLogger(r.log))
-	}
-
 	r.router.RegisterCommand(name, commandType, handler)
 
 	return r
