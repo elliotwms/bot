@@ -37,7 +37,7 @@ jobs:
         env:
           FAKEDISCORD: 1
         run: go test -v ./...
-      - name: Test
+      - name: Test (lambda)
         env:
           FAKEDISCORD: 1
         run: go test -v lambda/...
