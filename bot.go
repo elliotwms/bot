@@ -23,7 +23,8 @@ type Bot struct {
 
 // Run runs the bot, starts the session if not already started, serves the health endpoint if present, and blocks
 // until context is done.
-// If the session is already started, Run will not stop the session
+// If the session is already connected before Run is called, Run will not stop the session when the context is
+// completed.
 func (bot *Bot) Run(ctx context.Context) error {
 	if bot.intents != 0 {
 		bot.session.Identify.Intents = bot.intents
