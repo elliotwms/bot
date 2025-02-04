@@ -1,4 +1,4 @@
-module github.com/elliotwms/bot/endpoint
+module github.com/elliotwms/bot/lambda
 
 go 1.23.1
 
