@@ -102,5 +102,4 @@ func (r *Router) handleApplicationCommand(ctx context.Context, s *discordgo.Sess
 	if err := h(ctx, s, e, command); err != nil {
 		r.log.Error("Failed to handle interaction", "error", err)
 	}
-	return
 }
