@@ -5,7 +5,7 @@ import (
 	"log/slog"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/elliotwms/bot/log"
+	pkglog "github.com/elliotwms/bot/log"
 )
 
 type ApplicationCommandHandler func(ctx context.Context, s *discordgo.Session, i *discordgo.InteractionCreate, data discordgo.ApplicationCommandInteractionData) (err error)
@@ -26,7 +26,7 @@ type Option func(*Router)
 func New(options ...func(*Router)) *Router {
 	r := &Router{
 		applicationCommandHandlers: make(map[key]ApplicationCommandHandler),
-		log:                        slog.New(log.DiscardHandler),
+		log:                        slog.New(pkglog.DiscardHandler),
 	}
 
 	for _, o := range options {
@@ -77,8 +77,16 @@ func (r *Router) HandleWithContext(ctx context.Context, is *discordgo.Session, i
 }
 
 func (r *Router) handleApplicationCommand(ctx context.Context, s *discordgo.Session, e *discordgo.InteractionCreate) {
+	command := e.ApplicationCommandData()
+
+	log := r.log.With(
+		slog.String("interaction", e.ID),
+		slog.String("command", command.Name),
+	)
+
 	// if deferred response is enabled then call discord with the initial response before routing the command
 	if r.deferredResponseEnabled {
+		log.Debug("Sending deferred response")
 		err := s.InteractionRespond(e.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
 			Data: &discordgo.InteractionResponseData{
@@ -86,20 +94,18 @@ func (r *Router) handleApplicationCommand(ctx context.Context, s *discordgo.Sess
 			},
 		}, discordgo.WithContext(ctx))
 		if err != nil {
-			r.log.Error("Failed to respond to InteractionCreate", "error", err)
+			log.Error("Failed to respond to InteractionCreate", "error", err)
 			return
 		}
 	}
 
-	command := e.ApplicationCommandData()
-
 	h, ok := r.applicationCommandHandlers[key{command.Name, command.CommandType}]
 	if !ok {
-		r.log.Error("Handler not found for application command", "name", command.Name)
+		log.Error("Handler not found for application command", "name", command.Name)
 		return
 	}
 
 	if err := h(ctx, s, e, command); err != nil {
-		r.log.Error("Failed to handle interaction", "error", err)
+		log.Error("Failed to handle interaction", "error", err)
 	}
 }

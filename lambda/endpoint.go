@@ -104,11 +104,10 @@ func (r *Endpoint) Handle(ctx context.Context, event *events.LambdaFunctionURLRe
 
 	bs := []byte(event.Body)
 
-	r.log.Info(
+	r.log.Debug(
 		"Received request",
 		slog.String("user_agent", event.RequestContext.HTTP.UserAgent),
 		slog.String("method", event.RequestContext.HTTP.Method),
-		//slog.String("version", build.Version),
 	)
 
 	if err = r.verify(ctx, event); err != nil {
@@ -183,7 +182,7 @@ func (r *Endpoint) verify(ctx context.Context, event *events.LambdaFunctionURLRe
 
 // handleInteraction handles the discordgo.InteractionCreate, returning an optional sync response
 func (r *Endpoint) handleInteraction(ctx context.Context, i *discordgo.InteractionCreate) (*discordgo.InteractionResponse, error) {
-	r.log.Info("Handling interaction", "type", i.Type, "interaction_id", i.ID)
+	r.log.Debug("Handling interaction", "type", i.Type, "interaction_id", i.ID)
 	ctx, seg := xray.BeginSubsegment(ctx, "handle interaction")
 	_ = seg.AddAnnotation("type", int(i.Type))
 	defer seg.Close(nil)
