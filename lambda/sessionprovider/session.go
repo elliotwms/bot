@@ -56,3 +56,10 @@ func Cached(f Provider) Provider {
 		return v, err
 	}
 }
+
+// Static will always return the provided session.
+func Static(s *discordgo.Session) Provider {
+	return func(ctx context.Context) (*discordgo.Session, error) {
+		return s, nil
+	}
+}
