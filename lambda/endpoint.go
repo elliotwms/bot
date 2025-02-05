@@ -14,7 +14,7 @@ import (
 	"github.com/aws/aws-xray-sdk-go/xray"
 	"github.com/bwmarrin/discordgo"
 	"github.com/elliotwms/bot/interactions/router"
-	"github.com/elliotwms/bot/lambda/sessionsource"
+	"github.com/elliotwms/bot/lambda/sessionprovider"
 	"github.com/elliotwms/bot/log"
 )
 
@@ -24,7 +24,7 @@ const (
 )
 
 type Endpoint struct {
-	s         sessionsource.SessionSource
+	s         sessionprovider.Provider
 	publicKey ed25519.PublicKey
 	router    *router.Router
 	log       *slog.Logger
@@ -61,17 +61,17 @@ func WithLogger(logger *slog.Logger) Option {
 	}
 }
 
-// WithSessionSource adds a session source, which will be called before each handler invocation to override the session
-// provided by the interaction.
+// WithSessionProvider adds a provider which will be called before each handler invocation to override the interaction's
+// default session (created using the interaction's token).
 // This is useful in scenarios where the bot requires more permissions than is provided by the token provided by the
 // interaction.
-func (r *Endpoint) WithSessionSource(f sessionsource.SessionSource) *Endpoint {
+func (r *Endpoint) WithSessionProvider(f sessionprovider.Provider) *Endpoint {
 	r.s = f
 
 	return r
 }
 
-// WithSession adds a hardcoded global session. See WithSessionSource for more info.
+// WithSession adds a hardcoded global session. See WithSessionProvider for more info.
 func (r *Endpoint) WithSession(s *discordgo.Session) *Endpoint {
 	r.s = func() (*discordgo.Session, error) {
 		return s, nil

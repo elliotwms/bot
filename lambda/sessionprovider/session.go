@@ -1,19 +1,20 @@
-package sessionsource
+package sessionprovider
 
 import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
+
 	"github.com/aws/aws-xray-sdk-go/xray"
 	"github.com/bwmarrin/discordgo"
 	"github.com/winebarrel/secretlamb"
-	"sync"
 )
 
-type SessionSource func() (*discordgo.Session, error)
+type Provider func() (*discordgo.Session, error)
 
 // ParamStore initialises the Discord Session using the token stored in param store
-func ParamStore(ctx context.Context, paramName string) SessionSource {
+func ParamStore(ctx context.Context, paramName string) Provider {
 	return func() (*discordgo.Session, error) {
 		_, seg := xray.BeginSubsegment(ctx, "param store")
 		defer seg.Close(nil)
@@ -40,7 +41,7 @@ func ParamStore(ctx context.Context, paramName string) SessionSource {
 	}
 }
 
-// Cached wraps a SessionSource, ensuring it is only called once
-func Cached(f SessionSource) SessionSource {
+// Cached wraps a Provider, ensuring it is only called once
+func Cached(f Provider) Provider {
 	return sync.OnceValues(f)
 }

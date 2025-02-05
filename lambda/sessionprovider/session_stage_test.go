@@ -1,4 +1,4 @@
-package sessionsource
+package sessionprovider
 
 import (
 	"context"
