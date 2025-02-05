@@ -14,6 +14,7 @@ import (
 	"github.com/aws/aws-xray-sdk-go/xray"
 	"github.com/bwmarrin/discordgo"
 	"github.com/elliotwms/bot/interactions/router"
+	"github.com/elliotwms/bot/lambda/sessionsource"
 	"github.com/elliotwms/bot/log"
 )
 
@@ -23,7 +24,7 @@ const (
 )
 
 type Endpoint struct {
-	s         *discordgo.Session
+	s         sessionsource.SessionSource
 	publicKey ed25519.PublicKey
 	router    *router.Router
 	log       *slog.Logger
@@ -60,9 +61,21 @@ func WithLogger(logger *slog.Logger) Option {
 	}
 }
 
-// WithSession adds a global session. This is provided instead of the interaction-specific discordgo.Session.
+// WithSessionSource adds a session source, which will be called before each handler invocation to override the session
+// provided by the interaction.
+// This is useful in scenarios where the bot requires more permissions than is provided by the token provided by the
+// interaction.
+func (r *Endpoint) WithSessionSource(f sessionsource.SessionSource) *Endpoint {
+	r.s = f
+
+	return r
+}
+
+// WithSession adds a hardcoded global session. See WithSessionSource for more info.
 func (r *Endpoint) WithSession(s *discordgo.Session) *Endpoint {
-	r.s = s
+	r.s = func() (*discordgo.Session, error) {
+		return s, nil
+	}
 
 	return r
 }
@@ -187,12 +200,20 @@ func (r *Endpoint) handleInteraction(ctx context.Context, i *discordgo.Interacti
 	_ = seg.AddAnnotation("type", int(i.Type))
 	defer seg.Close(nil)
 
-	// build a session scoped for the interaction
-	is := r.s
-	if is == nil {
-		is, _ = discordgo.New("Bot " + i.Token)
-		is.Client = xray.Client(is.Client)
+	var s *discordgo.Session
+
+	// if a session provided exists then use it as the session source
+	if r.s != nil {
+		var err error
+		s, err = r.s()
+		if err != nil {
+			return nil, fmt.Errorf("get session from source: %w", err)
+		}
+	} else {
+		// otherwise build a session scoped for the interaction
+		s, _ = discordgo.New("Bot " + i.Token)
+		s.Client = xray.Client(s.Client)
 	}
 
-	return r.router.HandleWithContext(ctx, is, i), nil
+	return r.router.HandleWithContext(ctx, s, i), nil
 }

@@ -1,4 +1,4 @@
-package lambda
+package sessionsource
 
 import (
 	"context"
@@ -62,7 +62,7 @@ func (s *SessionStage) param_store_will_return(f http.HandlerFunc) *SessionStage
 func (s *SessionStage) a_new_session_from_param_store_is_requested_with_param_named(name string) *SessionStage {
 	ctx, _ := xray.BeginSegment(context.Background(), "test")
 
-	s.session, s.err = SessionFromParamStore(ctx, name)
+	s.session, s.err = ParamStore(ctx, name)()
 
 	return s
 }

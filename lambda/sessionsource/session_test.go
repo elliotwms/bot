@@ -1,6 +1,10 @@
-package lambda
+package sessionsource
 
-import "testing"
+import (
+	"github.com/bwmarrin/discordgo"
+	"github.com/stretchr/testify/require"
+	"testing"
+)
 
 func TestSessionFromParamStore(t *testing.T) {
 	given, when, then := NewSessionStage(t)
@@ -53,4 +57,21 @@ func TestSessionFromParamStore_EmptyParamValue(t *testing.T) {
 
 	then.
 		an_error_should_be_returned("parameter empty")
+}
+
+func TestCached(t *testing.T) {
+	count := 0
+	f := func() (*discordgo.Session, error) {
+		count++
+
+		return &discordgo.Session{}, nil
+	}
+
+	source := Cached(f)
+
+	v1, _ := source()
+	v2, _ := source()
+
+	require.Equal(t, 1, count)
+	require.Equal(t, v1, v2)
 }
