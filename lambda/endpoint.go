@@ -14,6 +14,7 @@ import (
 	"github.com/aws/aws-xray-sdk-go/xray"
 	"github.com/bwmarrin/discordgo"
 	"github.com/elliotwms/bot/interactions/router"
+	"github.com/elliotwms/bot/log"
 )
 
 const (
@@ -29,7 +30,7 @@ type Endpoint struct {
 }
 
 func New(publicKey ed25519.PublicKey, options ...Option) *Endpoint {
-	logger := slog.Default()
+	logger := slog.New(log.DiscardHandler)
 
 	e := &Endpoint{
 		publicKey: publicKey,
@@ -50,6 +51,12 @@ type Option func(*Endpoint)
 func WithRouter(router *router.Router) Option {
 	return func(endpoint *Endpoint) {
 		endpoint.router = router
+	}
+}
+
+func WithLogger(logger *slog.Logger) Option {
+	return func(endpoint *Endpoint) {
+		endpoint.log = logger
 	}
 }
 
