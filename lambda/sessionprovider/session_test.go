@@ -1,6 +1,9 @@
 package sessionprovider
 
 import (
+	"context"
+	"fmt"
+
 	"github.com/bwmarrin/discordgo"
 	"github.com/stretchr/testify/require"
 	"testing"
@@ -61,16 +64,18 @@ func TestSessionFromParamStore_EmptyParamValue(t *testing.T) {
 
 func TestCached(t *testing.T) {
 	count := 0
-	f := func() (*discordgo.Session, error) {
+	f := func(ctx context.Context) (*discordgo.Session, error) {
 		count++
 
-		return &discordgo.Session{}, nil
+		return &discordgo.Session{
+			Token: fmt.Sprintf("Bot %v", count), // ensure the value changes with subsequent calls
+		}, nil
 	}
 
 	source := Cached(f)
 
-	v1, _ := source()
-	v2, _ := source()
+	v1, _ := source(context.Background())
+	v2, _ := source(context.Background())
 
 	require.Equal(t, 1, count)
 	require.Equal(t, v1, v2)

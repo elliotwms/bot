@@ -73,7 +73,7 @@ func (r *Endpoint) WithSessionProvider(f sessionprovider.Provider) *Endpoint {
 
 // WithSession adds a hardcoded global session. See WithSessionProvider for more info.
 func (r *Endpoint) WithSession(s *discordgo.Session) *Endpoint {
-	r.s = func() (*discordgo.Session, error) {
+	r.s = func(ctx context.Context) (*discordgo.Session, error) {
 		return s, nil
 	}
 
@@ -205,7 +205,7 @@ func (r *Endpoint) handleInteraction(ctx context.Context, i *discordgo.Interacti
 	// if a session provided exists then use it as the session source
 	if r.s != nil {
 		var err error
-		s, err = r.s()
+		s, err = r.s(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("get session from source: %w", err)
 		}

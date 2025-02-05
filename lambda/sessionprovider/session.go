@@ -11,11 +11,11 @@ import (
 	"github.com/winebarrel/secretlamb"
 )
 
-type Provider func() (*discordgo.Session, error)
+type Provider func(ctx context.Context) (*discordgo.Session, error)
 
 // ParamStore initialises the Discord Session using the token stored in param store
-func ParamStore(ctx context.Context, paramName string) Provider {
-	return func() (*discordgo.Session, error) {
+func ParamStore(paramName string) Provider {
+	return func(ctx context.Context) (*discordgo.Session, error) {
 		_, seg := xray.BeginSubsegment(ctx, "param store")
 		defer seg.Close(nil)
 		if paramName == "" {
@@ -43,5 +43,16 @@ func ParamStore(ctx context.Context, paramName string) Provider {
 
 // Cached wraps a Provider, ensuring it is only called once
 func Cached(f Provider) Provider {
-	return sync.OnceValues(f)
+	var v *discordgo.Session
+	var err error
+
+	var once = new(sync.Once)
+
+	return func(ctx context.Context) (*discordgo.Session, error) {
+		once.Do(func() {
+			v, err = f(context.Background())
+		})
+
+		return v, err
+	}
 }
