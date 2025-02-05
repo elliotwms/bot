@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/elliotwms/bot/interactions"
+	"github.com/elliotwms/bot/interactions/router"
 	"github.com/elliotwms/fakediscord/pkg/fakediscord"
 	"github.com/neilotoole/slogt"
 	"github.com/phayes/freeport"
@@ -213,7 +213,7 @@ func (s *RunStage) an_application_command_already_exists_named(name string) *Run
 }
 
 func (s *RunStage) the_bot_has_application_command_named(name string) *RunStage {
-	s.builder.WithApplicationCommand(&discordgo.ApplicationCommand{Name: name, Type: discordgo.ChatApplicationCommand}, func(_ *discordgo.Session, i *discordgo.InteractionCreate, data discordgo.ApplicationCommandInteractionData) (err error) {
+	s.builder.WithApplicationCommand(&discordgo.ApplicationCommand{Name: name, Type: discordgo.ChatApplicationCommand}, func(ctx context.Context, _ *discordgo.Session, i *discordgo.InteractionCreate, data discordgo.ApplicationCommandInteractionData) (err error) {
 		s.t.Log("Handler called")
 		s.handlerCalls = append(s.handlerCalls, i)
 
@@ -285,7 +285,7 @@ func (s *RunStage) the_command_is_invoked(name string) *RunStage {
 }
 
 func (s *RunStage) the_bot_has_deferred_response_enabled() *RunStage {
-	r := interactions.NewRouter(interactions.WithDeferredResponse(true))
+	r := router.New(router.WithDeferredResponse(true))
 	s.builder.WithRouter(r)
 
 	return s

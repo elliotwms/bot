@@ -1,6 +1,7 @@
-package interactions
+package router
 
 import (
+	"context"
 	"log/slog"
 	"testing"
 
@@ -20,14 +21,14 @@ func NewRouterStage(t *testing.T) (*RouterStage, *RouterStage, *RouterStage) {
 	s := &RouterStage{
 		t:       t,
 		require: require.New(t),
-		router:  NewRouter(WithLogger(slog.Default())),
+		router:  New(WithLogger(slog.Default())),
 	}
 
 	return s, s, s
 }
 
 func (s *RouterStage) a_handler_is_registered_for_command(name string) {
-	s.router.RegisterCommand(name, discordgo.ChatApplicationCommand, func(_ *discordgo.Session, i *discordgo.InteractionCreate, data discordgo.ApplicationCommandInteractionData) (err error) {
+	s.router.RegisterCommand(name, discordgo.ChatApplicationCommand, func(ctx context.Context, _ *discordgo.Session, i *discordgo.InteractionCreate, data discordgo.ApplicationCommandInteractionData) (err error) {
 		s.handlerCalled++
 
 		return nil
