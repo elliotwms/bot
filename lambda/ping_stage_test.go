@@ -12,6 +12,7 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-xray-sdk-go/xray"
 	"github.com/bwmarrin/discordgo"
+	"github.com/neilotoole/slogt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -38,7 +39,7 @@ func NewPingStage(t *testing.T) (*PingStage, *PingStage, *PingStage) {
 		assert:     assert.New(t),
 		require:    require.New(t),
 		session:    session,
-		handler:    New(publicKey).WithSession(session).Handle,
+		handler:    New(publicKey, WithLogger(slogt.New(t))).WithSession(session).Handle,
 		privateKey: privateKey,
 	}
 
