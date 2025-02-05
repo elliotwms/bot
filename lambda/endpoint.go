@@ -65,48 +65,48 @@ func WithLogger(logger *slog.Logger) Option {
 // default session (created using the interaction's token).
 // This is useful in scenarios where the bot requires more permissions than is provided by the token provided by the
 // interaction.
-func (r *Endpoint) WithSessionProvider(f sessionprovider.Provider) *Endpoint {
-	r.s = f
+func (e *Endpoint) WithSessionProvider(f sessionprovider.Provider) *Endpoint {
+	e.s = f
 
-	return r
+	return e
 }
 
 // WithSession adds a hardcoded global session. See WithSessionProvider for more info.
-func (r *Endpoint) WithSession(s *discordgo.Session) *Endpoint {
-	r.s = sessionprovider.Static(s)
+func (e *Endpoint) WithSession(s *discordgo.Session) *Endpoint {
+	e.s = sessionprovider.Static(s)
 
-	return r
+	return e
 }
 
 // WithChatApplicationCommand registers a new discordgo.ChatApplicationCommand.
 // This is syntactic sugar for WithApplicationCommand
-func (r *Endpoint) WithChatApplicationCommand(name string, handler router.ApplicationCommandHandler) *Endpoint {
-	return r.WithApplicationCommand(name, discordgo.ChatApplicationCommand, handler)
+func (e *Endpoint) WithChatApplicationCommand(name string, handler router.ApplicationCommandHandler) *Endpoint {
+	return e.WithApplicationCommand(name, discordgo.ChatApplicationCommand, handler)
 }
 
 // WithUserApplicationCommand registers a new discordgo.UserApplicationCommand.
 // This is syntactic sugar for WithApplicationCommand
-func (r *Endpoint) WithUserApplicationCommand(name string, handler router.ApplicationCommandHandler) *Endpoint {
-	return r.WithApplicationCommand(name, discordgo.UserApplicationCommand, handler)
+func (e *Endpoint) WithUserApplicationCommand(name string, handler router.ApplicationCommandHandler) *Endpoint {
+	return e.WithApplicationCommand(name, discordgo.UserApplicationCommand, handler)
 }
 
 // WithMessageApplicationCommand registers a new discordgo.MessageApplicationCommand.
 // This is syntactic sugar for WithApplicationCommand
-func (r *Endpoint) WithMessageApplicationCommand(name string, handler router.ApplicationCommandHandler) *Endpoint {
-	return r.WithApplicationCommand(name, discordgo.MessageApplicationCommand, handler)
+func (e *Endpoint) WithMessageApplicationCommand(name string, handler router.ApplicationCommandHandler) *Endpoint {
+	return e.WithApplicationCommand(name, discordgo.MessageApplicationCommand, handler)
 }
 
 // WithApplicationCommand registers a new application command with the underlying Router.
-func (r *Endpoint) WithApplicationCommand(name string, commandType discordgo.ApplicationCommandType, handler router.ApplicationCommandHandler) *Endpoint {
-	r.router.RegisterCommand(name, commandType, handler)
+func (e *Endpoint) WithApplicationCommand(name string, commandType discordgo.ApplicationCommandType, handler router.ApplicationCommandHandler) *Endpoint {
+	e.router.RegisterCommand(name, commandType, handler)
 
-	return r
+	return e
 }
 
 // Handle handles the events.LambdaFunctionURLRequest.
 // It should be registered to the Lambda Start in a function which is configured as a single-url function.
 // See https://docs.aws.amazon.com/lambda/latest/dg/urls-configuration.html for more info.
-func (r *Endpoint) Handle(ctx context.Context, event *events.LambdaFunctionURLRequest) (res *events.LambdaFunctionURLResponse, err error) {
+func (e *Endpoint) Handle(ctx context.Context, event *events.LambdaFunctionURLRequest) (res *events.LambdaFunctionURLResponse, err error) {
 	ctx, s := xray.BeginSubsegment(ctx, "handle")
 	defer s.Close(err)
 	if event == nil {
@@ -115,14 +115,14 @@ func (r *Endpoint) Handle(ctx context.Context, event *events.LambdaFunctionURLRe
 
 	bs := []byte(event.Body)
 
-	r.log.Debug(
+	e.log.Debug(
 		"Received request",
 		slog.String("user_agent", event.RequestContext.HTTP.UserAgent),
 		slog.String("method", event.RequestContext.HTTP.Method),
 	)
 
-	if err = r.verify(ctx, event); err != nil {
-		r.log.Error("Failed to verify signature", "error", err)
+	if err = e.verify(ctx, event); err != nil {
+		e.log.Error("Failed to verify signature", "error", err)
 		return &events.LambdaFunctionURLResponse{
 			StatusCode: http.StatusUnauthorized,
 		}, nil
@@ -133,7 +133,7 @@ func (r *Endpoint) Handle(ctx context.Context, event *events.LambdaFunctionURLRe
 		return nil, err
 	}
 
-	response, err := r.handleInteraction(ctx, i)
+	response, err := e.handleInteraction(ctx, i)
 	if err != nil {
 		return nil, err
 	}
@@ -155,11 +155,11 @@ func (r *Endpoint) Handle(ctx context.Context, event *events.LambdaFunctionURLRe
 
 // verify verifies the request using the ed25519 signature as per Discord's documentation.
 // See https://discord.com/developers/docs/events/webhook-events#setting-up-an-endpoint-validating-security-request-headers.
-func (r *Endpoint) verify(ctx context.Context, event *events.LambdaFunctionURLRequest) error {
+func (e *Endpoint) verify(ctx context.Context, event *events.LambdaFunctionURLRequest) error {
 	_, s := xray.BeginSubsegment(ctx, "verify")
 	defer s.Close(nil)
 
-	if len(r.publicKey) == 0 {
+	if len(e.publicKey) == 0 {
 		return nil
 	}
 
@@ -184,7 +184,7 @@ func (r *Endpoint) verify(ctx context.Context, event *events.LambdaFunctionURLRe
 
 	verify := append([]byte(ts), []byte(event.Body)...)
 
-	if !ed25519.Verify(r.publicKey, verify, sig) {
+	if !ed25519.Verify(e.publicKey, verify, sig) {
 		return errors.New("invalid signature")
 	}
 
@@ -192,8 +192,8 @@ func (r *Endpoint) verify(ctx context.Context, event *events.LambdaFunctionURLRe
 }
 
 // handleInteraction handles the discordgo.InteractionCreate, returning an optional sync response
-func (r *Endpoint) handleInteraction(ctx context.Context, i *discordgo.InteractionCreate) (*discordgo.InteractionResponse, error) {
-	r.log.Debug("Handling interaction", "type", i.Type, "interaction_id", i.ID)
+func (e *Endpoint) handleInteraction(ctx context.Context, i *discordgo.InteractionCreate) (*discordgo.InteractionResponse, error) {
+	e.log.Debug("Handling interaction", "type", i.Type, "interaction_id", i.ID)
 	ctx, seg := xray.BeginSubsegment(ctx, "handle interaction")
 	_ = seg.AddAnnotation("type", int(i.Type))
 	defer seg.Close(nil)
@@ -201,9 +201,9 @@ func (r *Endpoint) handleInteraction(ctx context.Context, i *discordgo.Interacti
 	var s *discordgo.Session
 
 	// if a session provided exists then use it as the session source
-	if r.s != nil {
+	if e.s != nil {
 		var err error
-		s, err = r.s(ctx)
+		s, err = e.s(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("get session from source: %w", err)
 		}
@@ -213,5 +213,5 @@ func (r *Endpoint) handleInteraction(ctx context.Context, i *discordgo.Interacti
 		s.Client = xray.Client(s.Client)
 	}
 
-	return r.router.HandleWithContext(ctx, s, i), nil
+	return e.router.HandleWithContext(ctx, s, i), nil
 }
