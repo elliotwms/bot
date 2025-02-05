@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/elliotwms/bot/interactions"
+	"github.com/elliotwms/bot/interactions/router"
 	"github.com/elliotwms/fakediscord/pkg/fakediscord"
 	"github.com/neilotoole/slogt"
 	"github.com/phayes/freeport"
@@ -285,7 +285,7 @@ func (s *RunStage) the_command_is_invoked(name string) *RunStage {
 }
 
 func (s *RunStage) the_bot_has_deferred_response_enabled() *RunStage {
-	r := interactions.NewRouter(interactions.WithDeferredResponse(true))
+	r := router.New(router.WithDeferredResponse(true))
 	s.builder.WithRouter(r)
 
 	return s

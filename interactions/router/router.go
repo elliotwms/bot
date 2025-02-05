@@ -1,4 +1,4 @@
-package interactions
+package router
 
 import (
 	"context"
@@ -21,9 +21,9 @@ type Router struct {
 	deferredResponseEnabled    bool
 }
 
-type RouterOption func(*Router)
+type Option func(*Router)
 
-func NewRouter(options ...func(*Router)) *Router {
+func New(options ...func(*Router)) *Router {
 	r := &Router{
 		applicationCommandHandlers: make(map[key]ApplicationCommandHandler),
 		log:                        slog.New(log.DiscardHandler),
@@ -36,14 +36,14 @@ func NewRouter(options ...func(*Router)) *Router {
 	return r
 }
 
-func WithLogger(l *slog.Logger) RouterOption {
+func WithLogger(l *slog.Logger) Option {
 	return func(r *Router) {
 		r.log = l
 	}
 }
 
 // WithDeferredResponse adds an initial deferred response to command invocations
-func WithDeferredResponse(enabled bool) RouterOption {
+func WithDeferredResponse(enabled bool) Option {
 	return func(r *Router) {
 		r.deferredResponseEnabled = enabled
 	}

@@ -6,7 +6,8 @@ import (
 	"log/slog"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/elliotwms/bot/interactions"
+	"github.com/elliotwms/bot/interactions/migrator"
+	"github.com/elliotwms/bot/interactions/router"
 	"github.com/elliotwms/bot/log"
 )
 
@@ -17,8 +18,8 @@ type Bot struct {
 	healthCheckAddr *string
 	intents         discordgo.Intent
 	handlerRemovers []func()
-	router          *interactions.Router
-	migrator        *interactions.Migrator
+	router          *router.Router
+	migrator        *migrator.Migrator
 }
 
 // Run runs the bot, starts the session if not already started, serves the health endpoint if present, and blocks

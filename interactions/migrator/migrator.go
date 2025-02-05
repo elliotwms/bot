@@ -1,4 +1,4 @@
-package interactions
+package migrator
 
 import (
 	"context"
@@ -19,10 +19,10 @@ type Migrator struct {
 	guildID  string
 }
 
-type MigratorOption func(*Migrator)
+type Option func(*Migrator)
 
-// NewMigrator creates a new Migrator.
-func NewMigrator(s *discordgo.Session, appID string, opts ...MigratorOption) *Migrator {
+// New creates a new Migrator.
+func New(s *discordgo.Session, appID string, opts ...Option) *Migrator {
 	m := &Migrator{s: s, appID: appID}
 
 	for _, opt := range opts {
@@ -33,7 +33,7 @@ func NewMigrator(s *discordgo.Session, appID string, opts ...MigratorOption) *Mi
 }
 
 // WithGuildID configures a guild to create the commands in (as opposed to creating them globally).
-func WithGuildID(id string) MigratorOption {
+func WithGuildID(id string) Option {
 	return func(migrator *Migrator) {
 		migrator.guildID = id
 	}

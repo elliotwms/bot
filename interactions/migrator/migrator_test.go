@@ -1,4 +1,4 @@
-package interactions
+package migrator
 
 import (
 	"context"
@@ -11,7 +11,7 @@ import (
 func TestMigrator_NewMigrator(t *testing.T) {
 	s, _ := discordgo.New("token")
 
-	m := NewMigrator(s, "foo")
+	m := New(s, "foo")
 
 	require.Empty(t, m.guildID)
 }
@@ -19,7 +19,7 @@ func TestMigrator_NewMigrator(t *testing.T) {
 func TestMigrator_NewMigrator_WithGuildID(t *testing.T) {
 	s, _ := discordgo.New("token")
 
-	m := NewMigrator(s, "foo", WithGuildID("bar"))
+	m := New(s, "foo", WithGuildID("bar"))
 
 	require.Equal(t, "bar", m.guildID)
 }

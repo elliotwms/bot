@@ -13,7 +13,7 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-xray-sdk-go/xray"
 	"github.com/bwmarrin/discordgo"
-	"github.com/elliotwms/bot/interactions"
+	"github.com/elliotwms/bot/interactions/router"
 )
 
 const (
@@ -24,11 +24,9 @@ const (
 type Endpoint struct {
 	s         *discordgo.Session
 	publicKey ed25519.PublicKey
-	router    *interactions.Router
+	router    *router.Router
 	log       *slog.Logger
 }
-
-type CommandHandler func(ctx context.Context, s *discordgo.Session, i *discordgo.InteractionCreate, data discordgo.ApplicationCommandInteractionData) error
 
 func New(publicKey ed25519.PublicKey, options ...Option) *Endpoint {
 	logger := slog.Default()
@@ -36,7 +34,7 @@ func New(publicKey ed25519.PublicKey, options ...Option) *Endpoint {
 	e := &Endpoint{
 		publicKey: publicKey,
 		log:       logger,
-		router:    interactions.NewRouter(interactions.WithLogger(logger)),
+		router:    router.New(router.WithLogger(logger)),
 	}
 
 	for _, o := range options {
@@ -49,7 +47,7 @@ func New(publicKey ed25519.PublicKey, options ...Option) *Endpoint {
 type Option func(*Endpoint)
 
 // WithRouter overrides the underlying router used for the endpoint.
-func WithRouter(router *interactions.Router) Option {
+func WithRouter(router *router.Router) Option {
 	return func(endpoint *Endpoint) {
 		endpoint.router = router
 	}
@@ -64,24 +62,24 @@ func (r *Endpoint) WithSession(s *discordgo.Session) *Endpoint {
 
 // WithChatApplicationCommand registers a new discordgo.ChatApplicationCommand.
 // This is syntactic sugar for WithApplicationCommand
-func (r *Endpoint) WithChatApplicationCommand(name string, handler interactions.ApplicationCommandHandler) *Endpoint {
+func (r *Endpoint) WithChatApplicationCommand(name string, handler router.ApplicationCommandHandler) *Endpoint {
 	return r.WithApplicationCommand(name, discordgo.ChatApplicationCommand, handler)
 }
 
 // WithUserApplicationCommand registers a new discordgo.UserApplicationCommand.
 // This is syntactic sugar for WithApplicationCommand
-func (r *Endpoint) WithUserApplicationCommand(name string, handler interactions.ApplicationCommandHandler) *Endpoint {
+func (r *Endpoint) WithUserApplicationCommand(name string, handler router.ApplicationCommandHandler) *Endpoint {
 	return r.WithApplicationCommand(name, discordgo.UserApplicationCommand, handler)
 }
 
 // WithMessageApplicationCommand registers a new discordgo.MessageApplicationCommand.
 // This is syntactic sugar for WithApplicationCommand
-func (r *Endpoint) WithMessageApplicationCommand(name string, handler interactions.ApplicationCommandHandler) *Endpoint {
+func (r *Endpoint) WithMessageApplicationCommand(name string, handler router.ApplicationCommandHandler) *Endpoint {
 	return r.WithApplicationCommand(name, discordgo.MessageApplicationCommand, handler)
 }
 
 // WithApplicationCommand registers a new application command with the underlying Router.
-func (r *Endpoint) WithApplicationCommand(name string, commandType discordgo.ApplicationCommandType, handler interactions.ApplicationCommandHandler) *Endpoint {
+func (r *Endpoint) WithApplicationCommand(name string, commandType discordgo.ApplicationCommandType, handler router.ApplicationCommandHandler) *Endpoint {
 	r.router.RegisterCommand(name, commandType, handler)
 
 	return r

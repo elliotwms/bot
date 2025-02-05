@@ -1,4 +1,4 @@
-package interactions
+package router
 
 import (
 	"context"
@@ -21,7 +21,7 @@ func NewRouterStage(t *testing.T) (*RouterStage, *RouterStage, *RouterStage) {
 	s := &RouterStage{
 		t:       t,
 		require: require.New(t),
-		router:  NewRouter(WithLogger(slog.Default())),
+		router:  New(WithLogger(slog.Default())),
 	}
 
 	return s, s, s

@@ -5,7 +5,8 @@ import (
 	"maps"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/elliotwms/bot/interactions"
+	"github.com/elliotwms/bot/interactions/migrator"
+	"github.com/elliotwms/bot/interactions/router"
 	"github.com/elliotwms/bot/log"
 )
 
@@ -18,11 +19,11 @@ type Builder struct {
 	applicationID    string
 	healthCheckAddr  *string
 	intents          discordgo.Intent
-	router           *interactions.Router
-	migrator         *interactions.Migrator
+	router           *router.Router
+	migrator         *migrator.Migrator
 	guildID          string
 	handlers         []interface{}
-	commands         map[*discordgo.ApplicationCommand]interactions.ApplicationCommandHandler
+	commands         map[*discordgo.ApplicationCommand]router.ApplicationCommandHandler
 	migrationEnabled bool
 }
 
@@ -31,7 +32,7 @@ func New(applicationID string, session *discordgo.Session) *Builder {
 		session:       session,
 		log:           slog.New(log.DiscardHandler),
 		applicationID: applicationID,
-		commands:      make(map[*discordgo.ApplicationCommand]interactions.ApplicationCommandHandler),
+		commands:      make(map[*discordgo.ApplicationCommand]router.ApplicationCommandHandler),
 	}
 
 	return bot
@@ -70,13 +71,13 @@ func (b *Builder) WithHandlers(hs []interface{}) *Builder {
 	return b
 }
 
-func (b *Builder) WithRouter(r *interactions.Router) *Builder {
+func (b *Builder) WithRouter(r *router.Router) *Builder {
 	b.router = r
 
 	return b
 }
 
-func (b *Builder) WithMigrator(m *interactions.Migrator) *Builder {
+func (b *Builder) WithMigrator(m *migrator.Migrator) *Builder {
 	b.migrator = m
 
 	return b
@@ -94,13 +95,13 @@ func (b *Builder) WithMigrationEnabled(enabled bool) *Builder {
 	return b
 }
 
-func (b *Builder) WithApplicationCommand(c *discordgo.ApplicationCommand, h interactions.ApplicationCommandHandler) *Builder {
+func (b *Builder) WithApplicationCommand(c *discordgo.ApplicationCommand, h router.ApplicationCommandHandler) *Builder {
 	b.commands[c] = h
 
 	return b
 }
 
-func (b *Builder) WithApplicationCommands(handlers map[*discordgo.ApplicationCommand]interactions.ApplicationCommandHandler) *Builder {
+func (b *Builder) WithApplicationCommands(handlers map[*discordgo.ApplicationCommand]router.ApplicationCommandHandler) *Builder {
 	maps.Copy(b.commands, handlers)
 
 	return b
@@ -124,14 +125,14 @@ func (b *Builder) Build() *Bot {
 	// register application commands with the router and migrator
 	if len(b.commands) > 0 {
 		if bot.router == nil {
-			bot.router = interactions.NewRouter(interactions.WithLogger(bot.log))
+			bot.router = router.New(router.WithLogger(bot.log))
 		}
 
 		if bot.migrator == nil && b.migrationEnabled {
-			bot.migrator = interactions.NewMigrator(
+			bot.migrator = migrator.New(
 				b.session,
 				b.applicationID,
-				interactions.WithGuildID(b.guildID),
+				migrator.WithGuildID(b.guildID),
 			)
 		}
 
