@@ -3,7 +3,7 @@ module github.com/elliotwms/bot
 go 1.23
 
 require (
-	github.com/bwmarrin/discordgo v0.28.1
+	github.com/bwmarrin/discordgo v0.29.0
 	github.com/elliotwms/fakediscord v0.18.2
 	github.com/neilotoole/slogt v1.1.0
 	github.com/phayes/freeport v0.0.0-20220201140144-74d24b5ae9f5
