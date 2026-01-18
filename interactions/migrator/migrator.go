@@ -33,6 +33,8 @@ func New(s *discordgo.Session, appID string, opts ...Option) *Migrator {
 }
 
 // WithGuildID configures a guild to create the commands in (as opposed to creating them globally).
+// This reduces the feedback loop time for testing commands, as they are created/updated instantly for bots in a
+// specific guild, but eventually for bots globally
 func WithGuildID(id string) Option {
 	return func(migrator *Migrator) {
 		migrator.guildID = id
