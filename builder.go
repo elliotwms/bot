@@ -83,6 +83,9 @@ func (b *Builder) WithMigrator(m *migrator.Migrator) *Builder {
 	return b
 }
 
+// WithGuildID allows the bot to specify the guild used to create application commands in (as opposed to globally).
+// This allows for a more rapid feedback loop as guild-specific commands are updated instantly as opposed to global
+// commands which are updated eventually
 func (b *Builder) WithGuildID(guildID string) *Builder {
 	b.guildID = guildID
 
