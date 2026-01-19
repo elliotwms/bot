@@ -4,7 +4,7 @@ go 1.24.0
 
 require (
 	github.com/bwmarrin/discordgo v0.29.0
-	github.com/elliotwms/fakediscord v0.18.8
+	github.com/elliotwms/fakediscord v0.19.0
 	github.com/neilotoole/slogt v1.1.0
 	github.com/phayes/freeport v0.0.0-20220201140144-74d24b5ae9f5
 	github.com/stretchr/testify v1.11.1
@@ -13,7 +13,6 @@ require (
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/gorilla/websocket v1.5.3 // indirect
-	github.com/kr/text v0.2.0 // indirect
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	golang.org/x/crypto v0.45.0 // indirect
